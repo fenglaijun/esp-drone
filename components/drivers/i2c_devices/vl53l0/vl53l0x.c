@@ -114,6 +114,10 @@ bool vl53l0xInit(VL53L0xDev *dev, I2C_Dev *I2Cx, bool io_2V8)
         return false;
     }
 
+    vl53l0xSetVcselPulsePeriod(dev, VcselPeriodPreRange, 18);    /*长距离模式  33ms 周期*/
+    vl53l0xSetVcselPulsePeriod(dev, VcselPeriodFinalRange, 14);  /*长距离模式  33ms 周期*/
+    vl53l0xStartContinuous(dev, 0);
+
     /* Move initialized sensor to a new I2C address */
     //int newAddress;
 
@@ -904,6 +908,7 @@ bool vl53l0xGetSpadInfo(VL53L0xDev *dev, uint8_t *count, bool *type_is_aperture)
         if (checkTimeoutExpired()) {
             return false;
         }
+//        break;
     };
 
     i2cdevWriteByte(dev->I2Cx, dev->devAddr, 0x83, 0x01);

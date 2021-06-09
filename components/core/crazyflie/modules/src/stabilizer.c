@@ -268,6 +268,7 @@ static void stabilizerTask(void* param)
     // The sensor should unlock at 1kHz
     sensorsWaitDataReady();
 
+//    DEBUG_PRINTI("sensorsWaitDataReady\n");
     if (startPropTest != false) {
       // TODO: What happens with estimator when we run tests after startup?
       testState = configureAcc;
@@ -292,6 +293,7 @@ static void stabilizerTask(void* param)
       stateEstimator(&state, &sensorData, &control, tick);
       compressState();
 
+//      DEBUG_PRINTI("pitch = %d, roll = %d, yaw = %d\n", sensorData.acc., control.roll, control.yaw);
       commanderGetSetpoint(&setpoint, &state);
       compressSetpoint();
 
@@ -302,6 +304,7 @@ static void stabilizerTask(void* param)
 
       checkEmergencyStopTimeout();
 
+//      DEBUG_PRINTI("t %0.1f\n", control.thrust);
       checkStops = systemIsArmed();
       if (emergencyStop || (systemIsArmed() == false)) {
         powerStop();

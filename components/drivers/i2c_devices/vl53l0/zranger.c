@@ -121,7 +121,7 @@ void zRangerInit(void)
   if (isInit)
     return;
 
-  dev.I2Cx = 0;
+  dev.I2Cx = I2C1_DEV;
   dev.devAddr = VL53L0X_DEFAULT_ADDRESS;
   i2cdevInit(dev.I2Cx);
 
@@ -137,11 +137,18 @@ void zRangerInit(void)
   uint16_t wordData;
   wordData = vl53l0xGetModelID(&dev);
   DEBUG_PRINTI( "VL53L0X: %02X\n\r", wordData);
-
   if(wordData == VL53L0X_ID)
-	{
+  {
     DEBUG_PRINT( "VL53L0X I2C commection [OK].\n");
   }
+
+  wordData = vl53l0xGetRevisionID(&dev);
+  DEBUG_PRINTI( "RevisionID: %02X\n\r", wordData);
+  if(wordData == VL53L0X_IDENTIFICATION_REVISION_ID)
+  {
+    DEBUG_PRINT( "RevisionID [OK].\n");
+  }
+
 
   vl53l0xInit(&dev, I2C1_DEV, true);
 
@@ -177,11 +184,13 @@ void zRangerTask(void* arg)
   xLastWakeTime = xTaskGetTickCount();
 
   while (1) {
+//          DEBUG_PRINTI("ZRANGE???");
     vTaskDelayUntil(&xLastWakeTime, M2T(dev.measurement_timing_budget_ms));
 
-    range_last = zRangerGetMeasurementAndRestart(&dev);
+    range_last = vl53l0xReadRangeContinuousMillimeters(&dev);
+//    range_last = zRangerGetMeasurementAndRestart(&dev);
     rangeSet(rangeDown, range_last / 1000.0f);
-    DEBUG_PRINTD("ZRANGE = %f",range_last/ 1000.0f);
+    DEBUG_PRINTI("ZRANGE = %f",range_last/ 1000.0f);
 
     // check if range is feasible and push into the estimator
     // the sensor should not be able to measure >3 [m], and outliers typically

@@ -46,6 +46,7 @@
 #include "debug_cf.h"
 #include "static_mem.h"
 
+
 #define WIFI_ACTIVITY_TIMEOUT_MS (1000)
 
 static bool isInit = false;
@@ -61,7 +62,7 @@ static int wifilinkSendPacket(CRTPPacket *p);
 static int wifilinkSetEnable(bool enable);
 static int wifilinkReceiveCRTPPacket(CRTPPacket *p);
 
-STATIC_MEM_TASK_ALLOC(wifilinkTask, USBLINK_TASK_STACKSIZE);
+STATIC_MEM_TASK_ALLOC(wifilinkTask, UDP_TX_TASK_STACKSIZE);
 
 static float rch, pch, ych;
 static uint16_t tch;
@@ -92,12 +93,22 @@ static bool detectOldVersionApp(UDPPacket *in)
 
 static void wifilinkTask(void *param)
 {
+
+      //  DEBUG_PRINTI("!!!!!!!!!!!wifilinkTask\n");
     while (1) {
         /* command step - receive  03 Fetch a wifi packet off the queue */
+
+
         wifiGetDataBlocking(&wifiIn);
+
+//        DEBUG_PRINTI("222.Received %d", wifiIn.size);
+        DEBUG_PRINTI("222Received data size = %d  %02X \n", wifiIn.size, wifiIn.data[0]);
+        for (size_t i = 0; i < wifiIn.size; i++) {
+                DEBUG_PRINTI("222data[%d] = %02X ", i, wifiIn.data[i]);
+        }
+
         lastPacketTick = xTaskGetTickCount();
 #ifdef CONFIG_ENABLE_LEGACY_APP
-
         if (detectOldVersionApp(&wifiIn)) {
             rch  = (1.0) * (float)(((((uint16_t)wifiIn.data[1] << 8) + (uint16_t)wifiIn.data[2]) - 296) * 15.0 / 150.0); //-15~+15
             pch  = (-1.0) * (float)(((((uint16_t)wifiIn.data[3] << 8) + (uint16_t)wifiIn.data[4]) - 296) * 15.0 / 150.0); //-15~+15
@@ -173,6 +184,8 @@ void wifilinkInit()
     crtpPacketDelivery = STATIC_MEM_QUEUE_CREATE(crtpPacketDelivery);
     DEBUG_QUEUE_MONITOR_REGISTER(crtpPacketDelivery);
 
+    DEBUG_PRINTI("wifilinkTask###############\n");
+//    xTaskCreate(wifilinkTask, WIFILINK_TASK_NAME, UDP_TX_TASK_STACKSIZE, NULL, WIFILINK_TASK_PRI, NULL);
     STATIC_MEM_TASK_CREATE(wifilinkTask, wifilinkTask,WIFILINK_TASK_NAME,NULL, WIFILINK_TASK_PRI);
 
     isInit = true;

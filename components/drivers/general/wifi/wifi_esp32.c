@@ -27,7 +27,7 @@ static struct sockaddr_in6 source_addr; // Large enough for both IPv4 or IPv6
 //#define WIFI_SSID      "Udp Server"
 static char WIFI_SSID[32] = "ESP-DRONE";
 static char WIFI_PWD[64] = "12345678" ;
-#define MAX_STA_CONN (1)
+#define MAX_STA_CONN (3)
 
 static char rx_buffer[UDP_SERVER_BUFSIZE];
 static char tx_buffer[UDP_SERVER_BUFSIZE];
@@ -89,6 +89,8 @@ bool wifiGetDataBlocking(UDPPacket *in)
         vTaskDelay(1);
     }; // Don't return until we get some data on the UDP
 
+   // vTaskDelay(20);
+   // DEBUG_PRINTI("222.Received %d", in->size);
     return true;
 };
 
@@ -134,7 +136,9 @@ static void udp_server_rx_task(void *pvParameters)
     uint8_t cksum = 0;
     socklen_t socklen = sizeof(source_addr);
     
+//    DEBUG_PRINT_LOCAL("udp_server_rx_task!!!");
     while (true) {
+//            DEBUG_PRINTI("isUDPInit == %d\n",isUDPInit);
         if(isUDPInit == false) {
             vTaskDelay(20);
             continue;
@@ -142,11 +146,12 @@ static void udp_server_rx_task(void *pvParameters)
         int len = recvfrom(sock, rx_buffer, sizeof(rx_buffer) - 1, 0, (struct sockaddr *)&source_addr, &socklen);
         /* command step - receive  01 from Wi-Fi UDP */
         if (len < 0) {
-            DEBUG_PRINT_LOCAL("recvfrom failed: errno %d", errno);
-            break;
+                DEBUG_PRINTI("recvfrom failed: errno %d", errno);
+                break;
         } else if(len > WIFI_RX_TX_PACKET_SIZE - 4) {
-            DEBUG_PRINT_LOCAL("Received data length = %d > 64", len);
+                DEBUG_PRINTI("Received data length = %d > 64", len);
         } else {
+                DEBUG_PRINTI("udp packet right");
             //copy part of the UDP packet
             rx_buffer[len] = 0;// Null-terminate whatever we received and treat like a string...
             memcpy(inPacket.data, rx_buffer, len);
@@ -155,30 +160,41 @@ static void udp_server_rx_task(void *pvParameters)
             inPacket.size = len - 1;
             //check packet
             if (cksum == calculate_cksum(inPacket.data, len - 1) && inPacket.size < 64){
+
                 xQueueSend(udpDataRx, &inPacket, M2T(2));
                 if(!isUDPConnected) isUDPConnected = true;
+
+                DEBUG_PRINTI("cksum pass,isUDPConnected= %d",isUDPConnected);
             }else{
-                DEBUG_PRINT_LOCAL("udp packet cksum unmatched");
+                    DEBUG_PRINTI("udp packet cksum unmatched");
             }
 
-#ifdef DEBUG_UDP
+//#ifdef DEBUG_UDP
             DEBUG_PRINT_LOCAL("1.Received data size = %d  %02X \n cksum = %02X", len, inPacket.data[0], cksum);
             for (size_t i = 0; i < len; i++) {
                 DEBUG_PRINT_LOCAL(" data[%d] = %02X ", i, inPacket.data[i]);
             }
-#endif
+//#endif
         }
+//        DEBUG_PRINTI("?????");
+
+//        vTaskDelay(20);
     }
 }
 
 static void udp_server_tx_task(void *pvParameters)
 {
  
+        DEBUG_PRINT_LOCAL("udp_server_tx_task!!!");
     while (TRUE) {
+//            DEBUG_PRINTI("123isUDPInit == %d\n",isUDPInit);
         if(isUDPInit == false) {
             vTaskDelay(20);
             continue;
         }
+
+        //int err = sendto(sock, "fuckyou!", outPacket.size + 1, 0, (struct sockaddr *)&source_addr, sizeof(source_addr));
+       // vTaskDelay(200);
         if ((xQueueReceive(udpDataTx, &outPacket, 5) == pdTRUE) && isUDPConnected) {           
             memcpy(tx_buffer, outPacket.data, outPacket.size);       
             tx_buffer[outPacket.size] =  calculate_cksum(tx_buffer, outPacket.size);
@@ -186,15 +202,15 @@ static void udp_server_tx_task(void *pvParameters)
 
             int err = sendto(sock, tx_buffer, outPacket.size + 1, 0, (struct sockaddr *)&source_addr, sizeof(source_addr));
             if (err < 0) {
-                DEBUG_PRINT_LOCAL("Error occurred during sending: errno %d", errno);
+                    DEBUG_PRINTI("Error occurred during sending: errno %d", errno);
                 continue;
             }
-#ifdef DEBUG_UDP
+//#ifdef DEBUG_UDP
             DEBUG_PRINT_LOCAL("Send data to");
             for (size_t i = 0; i < outPacket.size + 1; i++) {
-                DEBUG_PRINT_LOCAL(" data_send[%d] = %02X ", i, tx_buffer[i]);
+                DEBUG_PRINT_LOCAL("###data_send[%d] = %02X ", i, tx_buffer[i]);
             }
-#endif
+//#endif
         }    
     }
 }
@@ -222,7 +238,8 @@ void wifiInit(void)
                     NULL));
 
     ESP_ERROR_CHECK(esp_wifi_get_mac(ESP_IF_WIFI_AP, mac));
-    sprintf(WIFI_SSID, "ESP-DRONE_%02X%02X%02X%02X%02X%02X", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+//    sprintf(WIFI_SSID, "flyy", mac[0], mac[1], mac[2], mac[3], mac[4], mac[5]);
+    sprintf(WIFI_SSID, "esp_plan");
 
     wifi_config_t wifi_config;
     memcpy(wifi_config.ap.ssid, WIFI_SSID, strlen(WIFI_SSID) + 1) ;
@@ -230,7 +247,7 @@ void wifiInit(void)
     memcpy(wifi_config.ap.password, WIFI_PWD, strlen(WIFI_PWD) + 1) ;
     wifi_config.ap.max_connection = MAX_STA_CONN;
     wifi_config.ap.authmode = WIFI_AUTH_WPA_WPA2_PSK;
-    wifi_config.ap.channel  = 13;
+    wifi_config.ap.channel  = 2;
 
     if (strlen(WIFI_PWD) == 0) {
         wifi_config.ap.authmode = WIFI_AUTH_OPEN;
@@ -239,7 +256,7 @@ void wifiInit(void)
     ESP_ERROR_CHECK(esp_wifi_set_mode(WIFI_MODE_AP));
     ESP_ERROR_CHECK(esp_wifi_set_config(ESP_IF_WIFI_AP, &wifi_config));
     ESP_ERROR_CHECK(esp_wifi_start());
-
+/*
     esp_netif_ip_info_t ip_info = {
         .ip.addr = ipaddr_addr("192.168.43.42"),
         .netmask.addr = ipaddr_addr("255.255.255.0"),
@@ -248,7 +265,7 @@ void wifiInit(void)
     ESP_ERROR_CHECK(esp_netif_dhcps_stop(ap_netif));
     ESP_ERROR_CHECK(esp_netif_set_ip_info(ap_netif, &ip_info));
     ESP_ERROR_CHECK(esp_netif_dhcps_start(ap_netif));
-
+*/
     DEBUG_PRINT_LOCAL("wifi_init_softap complete.SSID:%s password:%s", WIFI_SSID, WIFI_PWD);
 
     // This should probably be reduced to a CRTP packet size

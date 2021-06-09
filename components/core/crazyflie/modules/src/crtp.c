@@ -181,6 +181,7 @@ void crtpRxTask(void *param)
     {
       if (!link->receivePacket(&p))
       {
+       DEBUG_PRINTI("crtpRxTask size = %d\n",p.size);
         if (queues[p.port])
         {
           if (xQueueSend(queues[p.port], &p, 0) == errQUEUE_FULL)

@@ -389,9 +389,15 @@ void processAccGyroMeasurements(const uint8_t *buffer)
     accScaled.y = (accelRaw.y) * SENSORS_G_PER_LSB_CFG / accScale;
     accScaled.z = (accelRaw.z) * SENSORS_G_PER_LSB_CFG / accScale;
 
+
+
+
     /* sensors step 2.6 Compensate for a miss-aligned accelerometer. */
     sensorsAccAlignToGravity(&accScaled, &sensorData.acc);
     applyAxis3fLpf((lpf2pData *)(&accLpf), &sensorData.acc);
+
+//    DEBUG_PRINTI("acc.x = %0.1f, acc.y = %0.1f, acc.z = %0.1f\n", sensorData.acc.x, sensorData.acc.y,sensorData.acc.z);
+//    DEBUG_PRINTI("gyro.x = %0.1f, gyro.y = %0.1f, gyro.z = %0.1f\n", sensorData.gyro.x, sensorData.gyro.y,sensorData.gyro.z);
 }
 static void sensorsDeviceInit(void)
 {
@@ -488,15 +494,15 @@ static void sensorsDeviceInit(void)
 #endif
 
 #ifdef SENSORS_ENABLE_RANGE_VL53L1X
-    zRanger2Init();
-
-    if (zRanger2Test() == true) {
-        isVl53l1xPresent = true;
-        DEBUG_PRINTI("VL53L1X I2C connection [OK].\n");
-    } else {
-        //TODO: Should sensor test fail hard if no connection
-        DEBUG_PRINTW("VL53L1X I2C connection [FAIL].\n");
-    }
+//    zRanger2Init();
+//
+//    if (zRanger2Test() == true) {
+//        isVl53l1xPresent = true;
+//        DEBUG_PRINTI("VL53L1X I2C connection [OK].\n");
+//    } else {
+//        //TODO: Should sensor test fail hard if no connection
+//        DEBUG_PRINTW("VL53L1X I2C connection [FAIL].\n");
+//    }
 
 #endif
 
@@ -515,16 +521,16 @@ static void sensorsDeviceInit(void)
 
 #ifdef SENSORS_ENABLE_FLOW_PMW3901
 
-    flowdeck2Init();
-
-    if (flowdeck2Test() == true) {
-        isPmw3901Present = true;
-        setCommandermode(POSHOLD_MODE);
-        DEBUG_PRINTI("PMW3901 SPI connection [OK].\n");
-    } else {
-        //TODO: Should sensor test fail hard if no connection
-        DEBUG_PRINTW("PMW3901 SPI connection [FAIL].\n");
-    }
+//    flowdeck2Init();
+//
+//    if (flowdeck2Test() == true) {
+//        isPmw3901Present = true;
+//        setCommandermode(POSHOLD_MODE);
+//        DEBUG_PRINTI("PMW3901 SPI connection [OK].\n");
+//    } else {
+//        //TODO: Should sensor test fail hard if no connection
+//        DEBUG_PRINTW("PMW3901 SPI connection [FAIL].\n");
+//    }
 
 
 

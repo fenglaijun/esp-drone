@@ -153,6 +153,9 @@ static struct this_s this = {
   .thrustMin  = 5000,
 #endif
 
+//    .thrustBase = 32767,
+//    .thrustMin  = 0,
+
 };
 #endif
 
@@ -241,6 +244,7 @@ void velocityController(float* thrust, attitude_t *attitude, setpoint_t *setpoin
   if (*thrust < this.thrustMin) {
     *thrust = this.thrustMin;
   }
+//  DEBUG_PRINTI("haha\n");
 }
 
 void positionControllerResetAllPID()
